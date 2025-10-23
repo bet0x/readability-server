@@ -10,6 +10,7 @@ import re
 import uvicorn
 import os
 from typing import Annotated
+from scalar_fastapi import get_scalar_api_reference
 
 # Configuration
 API_TOKEN = os.getenv("API_TOKEN", "your-secret-api-key-here")
@@ -178,6 +179,13 @@ def process_url(url):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Error processing URL: {str(e)}')
 
+@app.get("/scalar", include_in_schema=False)
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Scalar Documentation"
+    )
+
 @app.get("/")
 async def root():
     return {
@@ -187,8 +195,9 @@ async def root():
             "/reader/html": "POST - URL in body, returns clean HTML (Requires API Key)",
             "/reader/markdown": "POST - URL in body, returns Markdown (Requires API Key)",
             "/reader/text": "POST - URL in body, returns plain text (Requires API Key)",
-            "/docs": "GET - Interactive API documentation",
-            "/redoc": "GET - Alternative API documentation"
+            "/docs": "GET - Interactive API documentation (Swagger UI)",
+            "/redoc": "GET - Alternative API documentation (ReDoc)",
+            "/scalar": "GET - Modern API documentation (Scalar)"
         },
         "authentication": "Bearer token required for all /reader/* endpoints"
     }
