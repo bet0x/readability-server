@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  readability-api:
+    build: .
+    container_name: readability-server
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.readability.rule=Host(`readability.localhost`)"
+      - "traefik.http.services.readability.loadbalancer.server.port=8000"
+
+  # Optional: Add a reverse proxy with Traefik
+  traefik:
+    image: traefik:v2.10
+    container_name: readability-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - readability-api
+    profiles:
+      - traefik
