@@ -1,6 +1,0 @@
-httpx
-beautifulsoup4
-fastapi
-uvicorn
-scalar-fastapi
-fastapi-mcp

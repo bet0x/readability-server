@@ -1,39 +1,32 @@
-# Use Python 3.12 slim image
-FROM python:3.12-slim
+# Use Node.js LTS version
+FROM node:20
 
 # Set working directory
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000
+# Copy package files
+COPY package*.json ./
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy application code
-COPY server.py .
-
-# Create non-root user
-RUN adduser --disabled-password --gecos '' appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY env.example ./
+COPY index.js ./
+COPY index.d.ts ./
+COPY Readability.js ./
+COPY JSDOMParser.js ./
+COPY Readability-readerable.js ./
+COPY server.js ./
 
 # Expose port
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Run the application with uvicorn
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Start the application
+CMD ["npm", "start"]
