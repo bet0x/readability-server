@@ -4,11 +4,12 @@ from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-import requests
+import httpx
 from bs4 import BeautifulSoup
 import re
 import uvicorn
 import os
+from urllib.parse import urljoin
 from typing import Annotated
 from scalar_fastapi import get_scalar_api_reference
 from fastapi_mcp import FastApiMCP
@@ -108,11 +109,11 @@ def extract_main_content(html, url):
     if main_content:
         for img in main_content.find_all('img'):
             if img.get('src'):
-                img['src'] = requests.compat.urljoin(url, img['src'])
+                img['src'] = urljoin(url, img['src'])
         
         for link in main_content.find_all('a'):
             if link.get('href'):
-                link['href'] = requests.compat.urljoin(url, link['href'])
+                link['href'] = urljoin(url, link['href'])
     
     return str(main_content) if main_content else str(soup)
 
@@ -160,26 +161,27 @@ def html_to_markdown(html):
     
     return html.strip()
 
-def process_url(url):
-    """Process a URL and extract content"""
+async def process_url(url):
+    """Process a URL and extract content asynchronously"""
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        # Extract title
-        soup = BeautifulSoup(response.text, 'html.parser')
-        title = soup.find('title')
-        title_text = title.get_text().strip() if title else 'No title'
-        
-        # Extract main content
-        content = extract_main_content(response.text, url)
-        
-        return {
-            'title': title_text,
-            'content': content
-        }
-        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            
+            # Extract title
+            soup = BeautifulSoup(response.text, 'html.parser')
+            title = soup.find('title')
+            title_text = title.get_text().strip() if title else 'No title'
+            
+            # Extract main content
+            content = extract_main_content(response.text, url)
+            
+            return {
+                'title': title_text,
+                'content': content
+            }
+            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Error processing URL: {str(e)}')
 
@@ -210,7 +212,7 @@ async def root():
 
 @app.post("/reader/html")
 async def reader_html(request: URLRequest, token: Authenticated):
-    article = process_url(request.url)
+    article = await process_url(request.url)
     
     clean_html = f"""
 <!DOCTYPE html>
@@ -244,7 +246,7 @@ async def reader_html(request: URLRequest, token: Authenticated):
 
 @app.post("/reader/markdown")
 async def reader_markdown(request: URLRequest, token: Authenticated):
-    article = process_url(request.url)
+    article = await process_url(request.url)
     markdown = html_to_markdown(article['content'])
     
     full_markdown = f"# {article['title']}\n\n{markdown}"
@@ -254,7 +256,7 @@ async def reader_markdown(request: URLRequest, token: Authenticated):
 
 @app.post("/reader/text")
 async def reader_text(request: URLRequest, token: Authenticated):
-    article = process_url(request.url)
+    article = await process_url(request.url)
     
     # Convert HTML to plain text
     text = re.sub(r'<[^>]*>', '', article['content'])
