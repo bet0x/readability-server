@@ -15,12 +15,28 @@ A production-ready REST API server that provides Mozilla Readability functionali
 
 ## 📦 Installation
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
+
+```bash
+# Pull and run the latest image
+docker run -d \
+  --name readability-server \
+  -p 8000:8000 \
+  -e API_KEY_AUTH_ENABLED=true \
+  -e API_KEY=your-secret-key \
+  barrahome/readability-server:latest
+```
+
+**Docker Hub**: [https://hub.docker.com/r/barrahome/readability-server](https://hub.docker.com/r/barrahome/readability-server)
+
+### Manual Installation
+
+#### Prerequisites
 
 - Node.js 18+ 
 - npm or yarn
 
-### Quick Start
+#### Setup
 
 ```bash
 # Clone the repository
@@ -149,9 +165,31 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture docum
 
 ## 🐳 Docker Deployment
 
+### Using Pre-built Docker Image (Quickest)
+
+The easiest way to deploy is using the pre-built image from Docker Hub:
+
+```bash
+# Pull the latest image
+docker pull barrahome/readability-server:latest
+
+# Run the container
+docker run -d \
+  --name readability-server \
+  -p 8000:8000 \
+  -e API_KEY_AUTH_ENABLED=true \
+  -e API_KEY=your-secret-key \
+  barrahome/readability-server:latest
+```
+
+**Docker Hub Repository**: [https://hub.docker.com/r/barrahome/readability-server](https://hub.docker.com/r/barrahome/readability-server)
+
 ### Using Docker Compose
 
 ```bash
+# Navigate to docker directory
+cd deployments/docker
+
 # Start the server
 docker-compose up -d
 
@@ -162,14 +200,19 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Using Docker
+### Building from Source
 
 ```bash
 # Build the image
-docker build -t readability-server .
+docker build -f deployments/docker/Dockerfile -t readability-server .
 
 # Run the container
-docker run -p 3000:3000 readability-server
+docker run -d \
+  --name readability-server \
+  -p 8000:8000 \
+  -e API_KEY_AUTH_ENABLED=true \
+  -e API_KEY=your-secret-key \
+  readability-server
 ```
 
 ## 🛠️ Development

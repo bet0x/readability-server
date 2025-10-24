@@ -73,6 +73,26 @@ FETCH_TIMEOUT=10000
 
 ## Docker Deployment
 
+### Using Pre-built Docker Image (Quickest)
+
+The easiest way to deploy is using the pre-built image from Docker Hub:
+
+```bash
+# Pull the latest image
+docker pull barrahome/readability-server:latest
+
+# Run the container
+docker run -d \
+  --name readability-server \
+  -p 8000:8000 \
+  -e NODE_ENV=production \
+  -e API_KEY_AUTH_ENABLED=true \
+  -e API_KEY=your-secret-key \
+  barrahome/readability-server:latest
+```
+
+**Docker Hub Repository**: [https://hub.docker.com/r/barrahome/readability-server](https://hub.docker.com/r/barrahome/readability-server)
+
 ### Using Docker Compose (Recommended)
 
 ```bash
