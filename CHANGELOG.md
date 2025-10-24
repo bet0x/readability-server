@@ -33,6 +33,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for semantic HTML elements (`<main>`, `<article>`)
 - Fallback content detection strategies
 
+## [1.0.5] - 2025-01-23
+
+### Added
+- **Model Context Protocol (MCP) Support** - AI assistant integration
+- MCP server endpoint at `/mcp` for AI model integration
+- Comprehensive MCP documentation and setup guides
+- Support for Claude, Cursor, and other MCP-compatible AI assistants
+- FastAPI-MCP integration with authentication preservation
+
+### Enhanced
+- Updated API version to 1.0.5
+- Enhanced API documentation with MCP endpoint information
+- Improved README with MCP feature highlights
+- Added MCP integration guide in documentation
+
+### Technical Improvements
+- Integrated [fastapi-mcp](https://github.com/tadata-org/fastapi_mcp) library
+- Preserved existing authentication system for MCP endpoints
+- Zero-configuration MCP setup with automatic tool discovery
+- ASGI transport for efficient AI model communication
+
+### Documentation
+- Added comprehensive MCP integration guide
+- Updated README with MCP feature description
+- Added MCP setup instructions for popular AI assistants
+- Included troubleshooting and security considerations
+
 ## [1.0.0] - 2025-10-23
 
 ### Added

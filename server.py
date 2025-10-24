@@ -11,6 +11,7 @@ import uvicorn
 import os
 from typing import Annotated
 from scalar_fastapi import get_scalar_api_reference
+from fastapi_mcp import FastApiMCP
 
 # Configuration
 API_TOKEN = os.getenv("API_TOKEN", "your-secret-api-key-here")
@@ -23,8 +24,8 @@ security = HTTPBearer(
 
 app = FastAPI(
     title="Reader View API", 
-    version="1.0.0",
-    description="A modern API for extracting clean, readable content from web pages"
+    version="1.0.5",
+    description="A modern API for extracting clean, readable content from web pages with MCP support"
 )
 
 # CORS middleware
@@ -35,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize MCP server
+mcp = FastApiMCP(app)
 
 class URLRequest(BaseModel):
     url: str
@@ -190,16 +194,18 @@ async def scalar_html():
 async def root():
     return {
         "message": "Reader View API",
-        "version": "1.0.0",
+        "version": "1.0.5",
         "endpoints": {
             "/reader/html": "POST - URL in body, returns clean HTML (Requires API Key)",
             "/reader/markdown": "POST - URL in body, returns Markdown (Requires API Key)",
             "/reader/text": "POST - URL in body, returns plain text (Requires API Key)",
             "/docs": "GET - Interactive API documentation (Swagger UI)",
             "/redoc": "GET - Alternative API documentation (ReDoc)",
-            "/scalar": "GET - Modern API documentation (Scalar)"
+            "/scalar": "GET - Modern API documentation (Scalar)",
+            "/mcp": "GET - Model Context Protocol server endpoint"
         },
-        "authentication": "Bearer token required for all /reader/* endpoints"
+        "authentication": "Bearer token required for all /reader/* endpoints",
+        "mcp_support": "Available at /mcp endpoint for AI model integration"
     }
 
 @app.post("/reader/html")
@@ -260,5 +266,8 @@ async def reader_text(request: URLRequest, token: Authenticated):
     return PlainTextResponse(content=full_text, media_type="text/plain")
 
 if __name__ == "__main__":
+    # Mount MCP server
+    mcp.mount()
+    
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)

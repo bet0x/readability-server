@@ -12,6 +12,7 @@ A modern, fast API for extracting clean, readable content from web pages - simil
 - 🌐 **CORS Support** - Cross-origin resource sharing enabled
 - 🐳 **Docker Ready** - Easy deployment with Docker and Docker Compose
 - ⚡ **High Performance** - Pure Python implementation, no Node.js required
+- 🤖 **MCP Support** - Model Context Protocol integration for AI assistants
 
 ## Quick Start
 
@@ -55,6 +56,7 @@ The API will be available at http://localhost:8000
 - [Usage Examples](docs/usage-examples.md) - Code examples in multiple languages
 - [Deployment Guide](docs/deployment.md) - Docker and production deployment
 - [Configuration](docs/configuration.md) - Environment variables and settings
+- [MCP Integration](docs/mcp-integration.md) - Model Context Protocol for AI assistants
 
 ## How It Works
 
@@ -63,6 +65,7 @@ The API will be available at http://localhost:8000
 3. **URL Resolution**: Converts relative URLs to absolute URLs for images and links
 4. **Format Conversion**: Converts HTML to Markdown or plain text as requested
 5. **Styling**: Applies clean, readable CSS for HTML output
+6. **MCP Integration**: Exposes endpoints as tools for AI assistants via Model Context Protocol
 
 ## Performance
 
