@@ -15,14 +15,38 @@ A modern, fast API for extracting clean, readable content from web pages - simil
 
 ## Quick Start
 
+### Using Pre-built Docker Image (Recommended)
+
 ```bash
-# Clone and start with Docker
+# Pull and run the latest image from Docker Hub
+docker run -d -p 8000:8000 \
+  -e API_TOKEN="your-secret-api-key-here" \
+  barrahome/readability-server:latest
+```
+
+### Using Docker Compose
+
+```bash
+# Clone and start with Docker Compose
 git clone https://github.com/bet0x/readability-server
 cd readability-server
 docker-compose -f deployments/docker/docker-compose.yml up -d
 ```
 
+### Using GitHub Container Registry
+
+```bash
+# Pull from GitHub Container Registry
+docker run -d -p 8000:8000 \
+  -e API_TOKEN="your-secret-api-key-here" \
+  ghcr.io/bet0x/readability-server:latest
+```
+
 The API will be available at http://localhost:8000
+
+**🐳 Docker Images Available:**
+- [Docker Hub](https://hub.docker.com/r/barrahome/readability-server) - `barrahome/readability-server`
+- [GitHub Container Registry](https://github.com/bet0x/readability-server/pkgs/container/readability-server) - `ghcr.io/bet0x/readability-server`
 
 ## Documentation
 

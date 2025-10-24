@@ -2,7 +2,39 @@
 
 ## Docker Deployment
 
-### Docker Compose (Recommended)
+### Using Pre-built Images (Recommended)
+
+The easiest way to deploy is using pre-built Docker images:
+
+#### Docker Hub
+
+```bash
+# Pull and run the latest image
+docker run -d -p 8000:8000 \
+  -e API_TOKEN="your-secure-api-key" \
+  barrahome/readability-server:latest
+
+# Or with custom port
+docker run -d -p 3000:8000 \
+  -e API_TOKEN="your-secure-api-key" \
+  -e PORT=8000 \
+  barrahome/readability-server:latest
+```
+
+#### GitHub Container Registry
+
+```bash
+# Pull and run from GitHub Container Registry
+docker run -d -p 8000:8000 \
+  -e API_TOKEN="your-secure-api-key" \
+  ghcr.io/bet0x/readability-server:latest
+```
+
+**Available Images:**
+- [Docker Hub](https://hub.docker.com/r/barrahome/readability-server) - `barrahome/readability-server`
+- [GitHub Container Registry](https://github.com/bet0x/readability-server/pkgs/container/readability-server) - `ghcr.io/bet0x/readability-server`
+
+### Docker Compose (Build from Source)
 
 The project includes a `docker-compose.yml` file in the `deployments/docker/` directory:
 
