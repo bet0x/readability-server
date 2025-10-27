@@ -33,6 +33,18 @@ class ReadabilityService {
   }
 
   /**
+   * Check if URL is from Bank of England website
+   */
+  isBankOfEnglandUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'www.bankofengland.co.uk';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Generate NCSC API URL from original URL
    */
   getNcscApiUrl(originalUrl) {
@@ -184,10 +196,19 @@ class ReadabilityService {
 
     // Regular fetch for non-NCSC URLs
     const fetch = (await import('node-fetch')).default;
+    
+    // Prepare headers
+    const headers = {
+      'User-Agent': this.config.api.userAgent
+    };
+    
+    // Add Bank of England cookie to bypass cookie notice
+    if (this.isBankOfEnglandUrl(url)) {
+      headers['Cookie'] = 'boeconsent=necessary';
+    }
+    
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': this.config.api.userAgent
-      },
+      headers: headers,
       timeout: this.config.api.fetchTimeout
     });
 
@@ -196,6 +217,22 @@ class ReadabilityService {
     }
 
     return await response.text();
+  }
+
+  /**
+   * Clean Bank of England content by removing cookie notice
+   */
+  cleanBankOfEnglandContent(content) {
+    // Pattern to match from "## Our use of cookies" until the numbered list starts
+    const cookiePattern = /## Our use of cookies[\s\S]*?(?=\d+\.\s*\[Home\]\(https:\/\/www\.bankofengland\.co\.uk\/\))/g;
+    
+    // Pattern to match the navigation section (numbered list starting with Home)
+    const navigationPattern = /^\d+\.\s*\[Home\]\(https:\/\/www\.bankofengland\.co\.uk\/\)[\s\S]*?(?=\n## |\n### |$)/gm;
+    
+    let cleanedContent = content.replace(cookiePattern, '');
+    cleanedContent = cleanedContent.replace(navigationPattern, '');
+    
+    return cleanedContent;
   }
 
   /**
@@ -312,6 +349,12 @@ class ReadabilityService {
       }
     }
 
+    // Check if this is a Bank of England URL and handle specially
+    if (this.isBankOfEnglandUrl(url)) {
+      console.log('Bank of England URL detected - will dump result for analysis');
+      // Continue with normal processing but will dump the result
+    }
+
     // Regular processing for non-NCSC URLs
     const html = await this.fetchHtml(url);
 
@@ -344,13 +387,18 @@ class ReadabilityService {
     result.siteName = this.extractSiteName(result, url);
 
     // Convert content based on output format
-    const { finalContent, contentType } = this.convertContent(
+    let { finalContent, contentType } = this.convertContent(
       result.content, 
       result.textContent, 
       outputFormat
     );
 
-    return {
+    // Clean Bank of England content to remove cookie notice
+    if (this.isBankOfEnglandUrl(url)) {
+      finalContent = this.cleanBankOfEnglandContent(finalContent);
+    }
+
+    const responseData = {
       success: true,
       data: {
         title: result.title,
@@ -369,6 +417,10 @@ class ReadabilityService {
         outputFormat: outputFormat
       }
     };
+
+
+    console.log('Response content:', finalContent);
+    return responseData;
   }
 }
 
