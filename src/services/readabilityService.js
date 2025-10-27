@@ -21,9 +21,168 @@ class ReadabilityService {
   }
 
   /**
+   * Check if URL is from NCSC website
+   */
+  isNcscUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'www.ncsc.gov.uk';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * Generate NCSC API URL from original URL
+   */
+  getNcscApiUrl(originalUrl) {
+    try {
+      const urlObj = new URL(originalUrl);
+      const path = urlObj.pathname;
+      
+      // Extract collection path from URL
+      const collectionMatch = path.match(/^\/collection\/([^\/]+)/);
+      if (collectionMatch) {
+        const collectionName = collectionMatch[1];
+        return `https://www.ncsc.gov.uk/api/1/services/v4/collection-content.json?url=/collection/${collectionName}&pageContentUrl=${path}`;
+      }
+      
+      // Fallback for other NCSC URLs
+      return `https://www.ncsc.gov.uk/api/1/services/v4/collection-content.json?url=${path}&pageContentUrl=${path}`;
+    } catch (e) {
+      throw new Error('Invalid NCSC URL format');
+    }
+  }
+
+  /**
+   * Fetch NCSC content from API
+   */
+  async fetchNcscContent(url) {
+    const apiUrl = this.getNcscApiUrl(url);
+    const fetch = (await import('node-fetch')).default;
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        'User-Agent': this.config.api.userAgent,
+        'Accept': 'application/json'
+      },
+      timeout: this.config.api.fetchTimeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch NCSC API: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Parse NCSC JSON content and convert to HTML
+   */
+  parseNcscContent(jsonData) {
+    const page = jsonData.page;
+    if (!page || !page.bodyContent) {
+      throw new Error('Invalid NCSC API response: missing bodyContent');
+    }
+
+    const bodyContent = page.bodyContent;
+    const title = bodyContent.title || page.title || 'NCSC Content';
+    const summary = bodyContent.summary || page.summary || '';
+    
+    // Generate HTML content from bodyContent.items
+    let htmlContent = '<div id="readability-page-1" class="page">\n    <div>\n';
+    
+    // Add primary image if present
+    if (page.primaryImage && page.primaryImage.imagePath) {
+      htmlContent += '        <figure>\n';
+      htmlContent += `            <img src="${this.escapeHtml(page.primaryImage.imagePath)}" alt="${this.escapeHtml(page.primaryImage.imageDescription || '')}" />\n`;
+      
+      if (page.primaryImage.imageCaption && page.primaryImage.imageCaption.trim()) {
+        htmlContent += `            <figcaption>${this.escapeHtml(page.primaryImage.imageCaption)}</figcaption>\n`;
+      }
+      
+      if (page.primaryImage.imageCredits && page.primaryImage.imageCredits.trim()) {
+        htmlContent += `            <div class="image-credits">${this.escapeHtml(page.primaryImage.imageCredits)}</div>\n`;
+      }
+      
+      htmlContent += '        </figure>\n';
+    }
+    
+    if (bodyContent.content && bodyContent.content.items) {
+      bodyContent.content.items.forEach(item => {
+        if (item.subheading && item.subheading.trim()) {
+          htmlContent += `        <h2>${this.escapeHtml(item.subheading)}</h2>\n`;
+        }
+        
+        if (item.description && item.description.trim()) {
+          // Convert description to paragraphs, handling line breaks
+          const paragraphs = item.description
+            .split(/\n\s*\n/)
+            .filter(p => p.trim())
+            .map(p => p.trim());
+          
+          paragraphs.forEach(paragraph => {
+            if (paragraph) {
+              htmlContent += `        <p>${this.escapeHtml(paragraph)}</p>\n`;
+            }
+          });
+        }
+      });
+    }
+    
+    htmlContent += '    </div>\n</div>';
+    
+    // Generate text content (HTML stripped)
+    const textContent = htmlContent
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return {
+      title,
+      content: htmlContent,
+      textContent,
+      length: textContent.length,
+      excerpt: summary,
+      byline: null,
+      dir: null,
+      siteName: 'NCSC',
+      lang: 'en',
+      publishedTime: page.modifiedDate || null,
+      readerable: true
+    };
+  }
+
+  /**
+   * Escape HTML characters
+   */
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  /**
    * Fetch HTML content from URL
    */
   async fetchHtml(url) {
+    // Check if this is an NCSC URL
+    if (this.isNcscUrl(url)) {
+      try {
+        const jsonData = await this.fetchNcscContent(url);
+        return this.parseNcscContent(jsonData);
+      } catch (error) {
+        console.warn('NCSC API failed, falling back to regular fetch:', error.message);
+        // Fall through to regular fetch
+      }
+    }
+
+    // Regular fetch for non-NCSC URLs
     const fetch = (await import('node-fetch')).default;
     const response = await fetch(url, {
       headers: {
@@ -115,7 +274,45 @@ class ReadabilityService {
       throw new Error('Please provide a valid URL');
     }
 
-    // Fetch HTML from URL
+    // Check if this is an NCSC URL and handle specially
+    if (this.isNcscUrl(url)) {
+      try {
+        const jsonData = await this.fetchNcscContent(url);
+        const ncscResult = this.parseNcscContent(jsonData);
+        
+        // Convert content based on output format
+        const { finalContent, contentType } = this.convertContent(
+          ncscResult.content, 
+          ncscResult.textContent, 
+          outputFormat
+        );
+
+        return {
+          success: true,
+          data: {
+            title: ncscResult.title,
+            content: finalContent,
+            contentType: contentType,
+            textContent: ncscResult.textContent,
+            length: ncscResult.length,
+            excerpt: ncscResult.excerpt,
+            byline: ncscResult.byline,
+            dir: ncscResult.dir,
+            siteName: ncscResult.siteName,
+            lang: ncscResult.lang,
+            publishedTime: ncscResult.publishedTime,
+            readerable: ncscResult.readerable,
+            sourceUrl: url,
+            outputFormat: outputFormat
+          }
+        };
+      } catch (error) {
+        console.warn('NCSC processing failed, falling back to regular processing:', error.message);
+        // Fall through to regular processing
+      }
+    }
+
+    // Regular processing for non-NCSC URLs
     const html = await this.fetchHtml(url);
 
     // Create DOM from HTML
