@@ -229,8 +229,16 @@ class ReadabilityService {
     // Pattern to match the navigation section (numbered list starting with Home)
     const navigationPattern = /^\d+\.\s*\[Home\]\(https:\/\/www\.bankofengland\.co\.uk\/\)[\s\S]*?(?=\n## |\n### |$)/gm;
     
+    // Pattern to match from "## Our use of cookies" until the Bank of England logo
+    const cookiePattern2 = /## Our use of cookies[\s\S]*?\[!\[Bank of England home\]\(https:\/\/www\.bankofengland\.co\.uk\/-.*?\)\]\(https:\/\/www\.bankofengland\.co\.uk\/\)/g;
+    
+    // Pattern to match numbered lists (1., 2., 3., etc.) until the first ##
+    const numberedListPattern = /^\d+\.\s+.*[\s\S]*?(?=\n## )/gm;
+    
     let cleanedContent = content.replace(cookiePattern, '');
     cleanedContent = cleanedContent.replace(navigationPattern, '');
+    cleanedContent = cleanedContent.replace(cookiePattern2, '');
+    cleanedContent = cleanedContent.replace(numberedListPattern, '');
     
     return cleanedContent;
   }
