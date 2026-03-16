@@ -427,7 +427,37 @@ export API_KEY_AUTH_ENABLED=true
 
 The MCP server communicates over stdio and is typically launched on-demand by the client. No persistent process is needed.
 
-### Claude Desktop
+### Remote HTTP (Streamable HTTP transport)
+
+When the HTTP server is running, MCP is also available remotely at `POST /mcp` — no separate process needed:
+
+```bash
+# List available tools
+curl -X POST https://your-server/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+
+# Call parse_url
+curl -X POST https://your-server/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"parse_url","arguments":{"url":"https://example.com","format":"markdown"}}}'
+```
+
+Configure any MCP client to use the remote endpoint:
+
+```json
+{
+  "mcpServers": {
+    "readability": {
+      "url": "https://your-server/mcp"
+    }
+  }
+}
+```
+
+### Local stdio (Claude Desktop)
 
 Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 

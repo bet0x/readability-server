@@ -29,6 +29,7 @@ const specs = {
   ],
   tags: [
     { name: 'Content Processing', description: 'URL parsing and content extraction' },
+    { name: 'MCP', description: 'Model Context Protocol — remote tool access for LLM clients' },
     { name: 'System', description: 'Health, metrics, and documentation' }
   ],
   paths: {
@@ -66,6 +67,41 @@ const specs = {
         tags: ['System'],
         responses: {
           200: { description: 'Server metrics' }
+        }
+      }
+    },
+    '/mcp': {
+      post: {
+        summary: 'MCP endpoint (Streamable HTTP)',
+        description: 'Model Context Protocol endpoint. Exposes the `parse_url` tool for remote LLM clients via JSON-RPC over HTTP/SSE. Requires `Accept: application/json, text/event-stream`.',
+        tags: ['MCP'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  jsonrpc: { type: 'string', example: '2.0' },
+                  id: { type: 'integer', example: 1 },
+                  method: { type: 'string', example: 'tools/list' },
+                  params: { type: 'object' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'JSON-RPC response (SSE stream or direct JSON)' },
+          406: { description: 'Missing required Accept header' }
+        }
+      },
+      get: {
+        summary: 'MCP SSE stream',
+        description: 'Opens a Server-Sent Events stream for MCP clients that support streaming.',
+        tags: ['MCP'],
+        responses: {
+          200: { description: 'SSE stream established' }
         }
       }
     },
