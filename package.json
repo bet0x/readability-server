@@ -1,6 +1,6 @@
 {
   "name": "readability-server",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A production-ready REST API server that provides Mozilla Readability functionality to extract readable content from web pages in HTML, Markdown, or text format.",
   "main": "src/server.js",
   "types": "index.d.ts",

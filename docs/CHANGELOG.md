@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-16
+
+### Added
+- **MCP over HTTP**: `POST /mcp` endpoint using Streamable HTTP transport — exposes `parse_url` remotely to any MCP-compatible client without a separate process
+- **MCP SSE stream**: `GET /mcp` for clients that support Server-Sent Events streaming
+- Docker deployments now serve both REST API and MCP from the same container on port 8000
+- `src/mcp-server.js` shared factory used by both stdio and HTTP transports
+- `/mcp` endpoint documented in OpenAPI spec (Scalar + Swagger UI)
+- Remote MCP configuration documented in DEPLOYMENT.md (`{ "url": "https://your-server/mcp" }`)
+
+### Changed
+- `src/mcp.js` refactored to use shared `createMcpServer()` factory
+
 ## [1.1.0] - 2026-03-16
 
 ### Added
