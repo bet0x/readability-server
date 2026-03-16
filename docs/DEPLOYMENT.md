@@ -446,13 +446,41 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 
 ```bash
 npm install -g .
+```
 
-# Then configure Claude Desktop with:
+```json
 {
   "mcpServers": {
     "readability": {
       "command": "readability-server",
       "args": ["--mcp"]
+    }
+  }
+}
+```
+
+### Docker
+
+The MCP server communicates over stdio so it must be run with `-i` (no `-t`):
+
+```bash
+docker run -i --rm barrahome/readability-server node src/cli.js --mcp
+```
+
+Or via Docker Compose (uses the `mcp` profile so it doesn't start with the default `up`):
+
+```bash
+docker compose -f deployments/docker/docker-compose.yml run --rm readability-mcp
+```
+
+Claude Desktop config using Docker:
+
+```json
+{
+  "mcpServers": {
+    "readability": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "barrahome/readability-server", "node", "src/cli.js", "--mcp"]
     }
   }
 }

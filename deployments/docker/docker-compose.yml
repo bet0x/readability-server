@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # HTTP REST API server (default)
   readability-server:
     build:
       context: ../../
@@ -35,3 +36,20 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.readability.rule=Host(`readability.yourdomain.com`)"
       - "traefik.http.services.readability.loadbalancer.server.port=8000"
+
+  # MCP stdio server — spawned on-demand by the MCP client, not a persistent service.
+  # Usage: docker compose run --rm readability-mcp
+  # Claude Desktop config: { "command": "docker", "args": ["compose", "-f", "/path/to/docker-compose.yml", "run", "--rm", "readability-mcp"] }
+  readability-mcp:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile
+    command: ["node", "src/cli.js", "--mcp"]
+    stdin_open: true
+    tty: false
+    environment:
+      - NODE_ENV=production
+      - USER_AGENT=Mozilla/5.0 (compatible; Mozilla-Readability-Server/1.0.0)
+      - FETCH_TIMEOUT=10000
+    profiles:
+      - mcp
