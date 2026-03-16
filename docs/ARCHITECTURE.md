@@ -21,9 +21,13 @@ readability-server/
 │   ├── utils/                  # Utilities and helpers
 │   │   └── metrics.js          # Metrics tracker
 │   ├── app.js                  # Express app configuration
-│   └── server.js               # Server entry point
+│   ├── cli.js                  # Unified entry point (CLI / HTTP server / MCP)
+│   ├── mcp.js                  # MCP stdio server (Model Context Protocol)
+│   └── server.js               # HTTP server
 ├── test/                       # Tests
 ├── docs/                       # Documentation
+├── deployments/                # Deployment configs
+│   └── docker/                 # Docker & Compose files
 ├── server.js                   # Legacy entry point (compatibility)
 ├── package.json
 └── README.md
@@ -53,12 +57,24 @@ readability-server/
 
 ## Application Flow
 
-1. **server.js** → Entry point that starts the server
-2. **app.js** → Configures the Express application
-3. **config/index.js** → Loads configuration
-4. **middleware/security.js** → Applies security middleware
-5. **routes/index.js** → Mounts all routes
-6. **services/readabilityService.js** → Processes content requests
+### HTTP server mode (`node src/cli.js --server` or `npm start`)
+1. **cli.js** → Detects `--server` flag (or no args) and delegates to server.js
+2. **server.js** → Starts the Express HTTP server
+3. **app.js** → Configures Express, middleware, routes
+4. **middleware/security.js** → Rate limiting, CORS, Helmet
+5. **routes/api.js** → POST /api/parse-url
+6. **services/readabilityService.js** → Fetches URL, runs Readability, converts format
+
+### CLI mode (`node src/cli.js <url>`)
+1. **cli.js** → Detects URL argument, calls ReadabilityService directly
+2. **services/readabilityService.js** → Processes URL
+3. stdout → Receives formatted content
+
+### MCP mode (`node src/cli.js --mcp`)
+1. **cli.js** → Delegates to mcp.js
+2. **mcp.js** → Starts MCP Server with stdio transport
+3. Exposes tool `parse_url` → calls ReadabilityService on each invocation
+4. Communicates with LLM clients via JSON-RPC over stdin/stdout
 
 ## Refactoring Benefits
 

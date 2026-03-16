@@ -8,45 +8,6 @@ const { apiKeyAuth } = require('../middleware/auth');
 const router = express.Router();
 const readabilityService = new ReadabilityService(config);
 
-/**
- * @swagger
- * /api/parse-url:
- *   post:
- *     summary: Parse content from URL
- *     description: Fetch HTML from URL and extract readable content in different formats
- *     tags: [Content Processing]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ParseUrlRequest'
- *     responses:
- *       200:
- *         description: Content parsed successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ParseResponse'
- *       400:
- *         description: Invalid input or URL
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       422:
- *         description: Parse failed
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
 router.post('/parse-url', apiKeyAuth, async (req, res) => {
   metricsTracker.incrementRequests();
   

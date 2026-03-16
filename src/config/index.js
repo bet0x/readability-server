@@ -1,5 +1,6 @@
 /* eslint-env node */
 require('dotenv').config();
+const { version } = require('../../package.json');
 
 const config = {
   server: {
@@ -55,7 +56,7 @@ const config = {
 
   app: {
     name: 'readability-server',
-    version: '1.0.0',
+    version,
     description: 'A production-ready REST API server that provides Mozilla Readability functionality to extract readable content from web pages'
   }
 };

@@ -2,7 +2,7 @@
 const express = require('express');
 const { apiReference } = require('@scalar/express-api-reference');
 const swaggerUi = require('swagger-ui-express');
-const swaggerSpecs = require('../config/swagger');
+const specs = require('../config/swagger');
 const config = require('../config');
 
 const router = express.Router();
@@ -11,7 +11,7 @@ const router = express.Router();
 router.use('/docs', apiReference({
   theme: 'purple',
   spec: {
-    content: swaggerSpecs,
+    content: specs,
   },
   configuration: {
     theme: 'purple',
@@ -21,7 +21,7 @@ router.use('/docs', apiReference({
   }
 }));
 
-router.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+router.use('/swagger', swaggerUi.serve, swaggerUi.setup(specs, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'Readability Server API',
   swaggerOptions: {
@@ -32,17 +32,6 @@ router.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
   }
 }));
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: API documentation
- *     description: Get API information and available endpoints
- *     tags: [System]
- *     responses:
- *       200:
- *         description: API information
- */
 router.get('/', (req, res) => {
   res.json({
     service: 'Readability Server',

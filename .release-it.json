@@ -2,7 +2,7 @@
   "plugins": {
     "@release-it/keep-a-changelog": {
       "addUnreleased": true,
-      "filename": "CHANGELOG.md"
+      "filename": "docs/CHANGELOG.md"
     }
   },
   "github": {
@@ -10,6 +10,6 @@
   },
   "git": {
     "requireBranch": "main",
-    "pushRepo": "https://github.com/mozilla/readability.git"
+    "pushRepo": "https://github.com/bet0x/readability-server.git"
   }
 }

@@ -7,23 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-16
+
 ### Added
-- API key authentication system
-- Comprehensive documentation
-- Clean architecture refactoring
-- Docker deployment support
-- Interactive API documentation (Scalar & Swagger)
+- **CLI mode**: parse a URL directly from the terminal via `node src/cli.js <url>`
+  - `--format html|markdown|text` flag (default: markdown)
+  - `--no-verify` flag to skip SSL certificate verification
+- **MCP server**: expose `parse_url` tool via Model Context Protocol stdio transport (`--mcp` flag)
+  - Compatible with Claude Desktop, Continue, and any MCP client
+  - Default output format is markdown, optimised for LLM consumption
+- Unified entry point `src/cli.js` — single binary for CLI, HTTP server, and MCP modes
+- `bin` field in `package.json` for global install via `npm install -g`
 
 ### Changed
-- Refactored codebase with modular architecture
-- Updated all documentation to English
-- Improved error handling and validation
-- Enhanced security features
+- Replaced `swagger-jsdoc` with a static OpenAPI spec object — eliminates `url.parse` deprecation warning and removes the `swagger-parser` dependency chain
+- Upgraded `jsdom` from `20.0.2` to `29.0.0` — eliminates `punycode` deprecation warning
+- Docker base image updated from `node:20` to `node:22-slim`
+- Docker `npm ci --only=production` updated to `npm ci --omit=dev` (flag was deprecated in npm 7+)
+- `npm start`, `dev`, and `prod` scripts now use `src/cli.js --server`
+- Fixed `pushRepo` in `.release-it.json` (was pointing to Mozilla's upstream repo)
+- Fixed `filename` path in `.release-it.json` to `docs/CHANGELOG.md`
 
-### Security
-- Added optional API key authentication
-- Improved rate limiting configuration
-- Enhanced CORS and security headers
+### Removed
+- `swagger-jsdoc` dependency and all `@swagger` JSDoc annotations from route files
+- Debug `console.log('Response content:', ...)` leftover in `readabilityService.js`
 
 ## [1.0.0] - 2024-01-24
 

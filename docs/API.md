@@ -2,7 +2,48 @@
 
 ## Overview
 
-The Readability Server provides a REST API for extracting clean, readable content from web pages using Mozilla's Readability algorithm.
+The Readability Server provides three interfaces for extracting clean, readable content from web pages using Mozilla's Readability algorithm:
+
+- **CLI** — parse a URL directly from the terminal
+- **HTTP REST API** — full server for service integrations
+- **MCP server** — Model Context Protocol stdio server for LLM clients
+
+## CLI Reference
+
+```bash
+node src/cli.js <url> [options]
+
+Options:
+  --format <fmt>   Output format: html | markdown (default) | text
+  --no-verify      Skip SSL certificate verification
+```
+
+Examples:
+
+```bash
+node src/cli.js https://example.com/article
+node src/cli.js https://example.com/article --format text
+node src/cli.js https://example.com/article --format html --no-verify
+node src/cli.js https://example.com/article > article.md
+```
+
+## MCP Tool Reference
+
+Start the MCP server:
+
+```bash
+node src/cli.js --mcp
+```
+
+Tool name: `parse_url`
+
+Input schema:
+```json
+{
+  "url": "string (required)",
+  "format": "html|markdown|text (optional, default: markdown)"
+}
+```
 
 ## Base URL
 

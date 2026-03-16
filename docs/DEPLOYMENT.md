@@ -37,7 +37,7 @@ Create a `.env` file based on `env.example`:
 
 ```bash
 # Server Configuration
-PORT=3000
+PORT=8000
 NODE_ENV=development
 
 # API Configuration
@@ -199,8 +199,11 @@ services:
 # Install PM2
 npm install -g pm2
 
-# Start the application
-pm2 start src/server.js --name readability-server
+# Start HTTP server
+pm2 start src/cli.js --name readability-server -- --server
+
+# Start MCP server (if needed as a persistent process)
+pm2 start src/cli.js --name readability-mcp -- --mcp
 
 # Save PM2 configuration
 pm2 save
@@ -222,11 +225,11 @@ After=network.target
 Type=simple
 User=node
 WorkingDirectory=/path/to/readability-server
-ExecStart=/usr/bin/node src/server.js
+ExecStart=/usr/bin/node src/cli.js --server
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
-Environment=PORT=3000
+Environment=PORT=8000
 
 [Install]
 WantedBy=multi-user.target
@@ -420,14 +423,55 @@ export HELMET_CSP_ENABLED=true
 export API_KEY_AUTH_ENABLED=true
 ```
 
+## MCP Server Deployment
+
+The MCP server communicates over stdio and is typically launched on-demand by the client. No persistent process is needed.
+
+### Claude Desktop
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "readability": {
+      "command": "node",
+      "args": ["/absolute/path/to/readability-server/src/cli.js", "--mcp"]
+    }
+  }
+}
+```
+
+### npx / global install
+
+```bash
+npm install -g .
+
+# Then configure Claude Desktop with:
+{
+  "mcpServers": {
+    "readability": {
+      "command": "readability-server",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+### Notes
+
+- All `console.log` output is redirected to stderr in MCP mode to keep stdout clean for JSON-RPC
+- The MCP server has no authentication — restrict access via OS-level permissions if needed
+- The `parse_url` tool default format is `markdown`, optimised for LLM consumption
+
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Port already in use:**
    ```bash
-   # Find process using port 3000
-   lsof -i :3000
+   # Find process using port 8000
+   lsof -i :8000
    # Kill the process
    kill -9 <PID>
    ```

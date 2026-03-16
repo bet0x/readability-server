@@ -15,16 +15,29 @@ cd readability-server
 
 # Install dependencies
 npm install
-
-# Start the server
-npm start
 ```
 
-The server will be available at `http://localhost:8000`
+### 2. Choose your mode
 
-### 2. Basic Usage
+**CLI — parse a URL directly:**
+```bash
+node src/cli.js https://example.com/article
+node src/cli.js https://example.com/article --format text
+node src/cli.js https://example.com/article --no-verify   # skip SSL check
+```
 
-Extract content from a web page:
+**HTTP server:**
+```bash
+npm start
+# server available at http://localhost:8000
+```
+
+**MCP server (for LLM clients like Claude Desktop):**
+```bash
+node src/cli.js --mcp
+```
+
+### 3. HTTP API basic usage
 
 ```bash
 curl -X POST http://localhost:8000/api/parse-url \
@@ -415,8 +428,8 @@ try {
 ### Common Issues
 
 1. **Server won't start:**
-   - Check if port 3000 is available
-   - Verify Node.js version (14+)
+   - Check if port 8000 is available
+   - Verify Node.js version (18+)
    - Check environment variables
 
 2. **Parse failures:**
@@ -434,6 +447,34 @@ try {
 - **Documentation:** Check `/docs` endpoint for interactive API docs
 - **Issues:** Report bugs on GitHub Issues
 - **Email:** Contact albertof@barrahome.org for support
+
+## MCP Integration
+
+Run as an MCP server to expose `parse_url` as a tool for Claude Desktop, Continue, or any MCP-compatible client.
+
+```bash
+node src/cli.js --mcp
+```
+
+### Claude Desktop (`claude_desktop_config.json`)
+
+```json
+{
+  "mcpServers": {
+    "readability": {
+      "command": "node",
+      "args": ["/absolute/path/to/readability-server/src/cli.js", "--mcp"]
+    }
+  }
+}
+```
+
+### Tool: `parse_url`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | yes | Web URL to fetch and parse |
+| `format` | string | no | `html`, `markdown` (default), or `text` |
 
 ## Next Steps
 

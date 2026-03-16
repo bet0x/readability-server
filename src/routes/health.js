@@ -6,21 +6,6 @@ const { optionalApiKeyAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Health check endpoint
- *     description: Check server status and basic metrics
- *     tags: [System]
- *     responses:
- *       200:
- *         description: Server running correctly
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/HealthResponse'
- */
 router.get('/health', optionalApiKeyAuth, (req, res) => {
   const metrics = metricsTracker.getHealthMetrics();
   
@@ -34,17 +19,6 @@ router.get('/health', optionalApiKeyAuth, (req, res) => {
   });
 });
 
-/**
- * @swagger
- * /metrics:
- *   get:
- *     summary: Server metrics
- *     description: Get detailed server metrics and statistics
- *     tags: [System]
- *     responses:
- *       200:
- *         description: Server metrics
- */
 router.get('/metrics', optionalApiKeyAuth, (req, res) => {
   res.json(metricsTracker.getDetailedMetrics());
 });

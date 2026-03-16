@@ -5,13 +5,15 @@ A production-ready REST API server that provides Mozilla Readability functionali
 ## 🚀 Features
 
 - **Multiple Output Formats**: HTML, Markdown, or plain text
+- **CLI Mode**: Parse a URL directly from the terminal — no server needed
+- **MCP Server**: Expose a `parse_url` tool via the Model Context Protocol (stdio)
+- **REST API**: Full HTTP server mode for service deployments
 - **Production Ready**: Rate limiting, compression, security headers, logging
 - **Interactive Documentation**: Scalar and Swagger UI
 - **Metrics & Monitoring**: Health checks and detailed metrics
 - **Docker Support**: Ready for containerized deployment
 - **Configurable**: Environment-based configuration
 - **Async Processing**: Handles multiple concurrent requests
-- **Clean Architecture**: Well-organized, maintainable codebase
 
 ## 📦 Installation
 
@@ -146,6 +148,61 @@ Health check with basic metrics.
 
 Detailed server metrics and statistics.
 
+## 💻 CLI Usage
+
+Parse a URL directly from the terminal without running a server:
+
+```bash
+# Output markdown (default)
+node src/cli.js https://example.com/article
+
+# Choose output format
+node src/cli.js https://example.com/article --format text
+node src/cli.js https://example.com/article --format html
+
+# Skip SSL certificate verification (self-signed / internal certs)
+node src/cli.js https://internal.example.com --no-verify
+
+# Pipe to a file
+node src/cli.js https://example.com/article > article.md
+```
+
+Or if installed globally (`npm install -g`):
+
+```bash
+readability-server https://example.com/article --format markdown
+```
+
+## 🤖 MCP Server
+
+Run as a [Model Context Protocol](https://modelcontextprotocol.io) server to give LLM clients direct access to the `parse_url` tool:
+
+```bash
+node src/cli.js --mcp
+```
+
+### Claude Desktop configuration
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "readability": {
+      "command": "node",
+      "args": ["/absolute/path/to/readability-server/src/cli.js", "--mcp"]
+    }
+  }
+}
+```
+
+### Tool: `parse_url`
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | yes | Web URL to fetch and parse |
+| `format` | string | no | `html`, `markdown` (default), or `text` |
+
 ## 🏗️ Architecture
 
 The project follows a clean, modular architecture:
@@ -158,7 +215,9 @@ src/
 ├── services/        # Business logic
 ├── utils/           # Utility functions
 ├── app.js           # Express app configuration
-└── server.js        # Server entry point
+├── cli.js           # Unified entry point (CLI / HTTP / MCP)
+├── mcp.js           # MCP stdio server
+└── server.js        # HTTP server
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
@@ -217,7 +276,18 @@ docker run -d \
 
 ## 🛠️ Development
 
-### Scripts
+### Entry point modes
+
+```bash
+node src/cli.js                          # HTTP server (default, same as npm start)
+node src/cli.js --server                 # HTTP server (explicit)
+node src/cli.js --mcp                    # MCP server via stdio
+node src/cli.js <url>                    # CLI: parse URL, output markdown
+node src/cli.js <url> --format <fmt>     # CLI: fmt = html | markdown | text
+node src/cli.js <url> --no-verify        # CLI: skip SSL certificate check
+```
+
+### npm scripts
 
 ```bash
 npm start          # Start production server

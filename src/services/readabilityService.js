@@ -45,6 +45,18 @@ class ReadabilityService {
   }
 
   /**
+   * Check if URL is from Broadcom TechDocs
+   */
+  isBroadcomTechDocsUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'techdocs.broadcom.com';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Generate NCSC API URL from original URL
    */
   getNcscApiUrl(originalUrl) {
@@ -285,6 +297,133 @@ class ReadabilityService {
   }
 
   /**
+   * Ensure all links and media src URLs are absolute based on the given base URL
+   */
+  absolutizeLinks(html, baseUrl) {
+    try {
+      const fragDom = new JSDOM(`<div id="_root">${html}</div>`, { url: baseUrl, contentType: 'text/html' });
+      const doc = fragDom.window.document;
+      const root = doc.getElementById('_root');
+
+      const absolutizeAttr = (el, attr) => {
+        const val = el.getAttribute(attr);
+        if (!val) return;
+        try {
+          const abs = new URL(val, baseUrl).href;
+          el.setAttribute(attr, abs);
+        } catch (_) {
+          /* ignore invalid URLs */
+        }
+      };
+
+      root.querySelectorAll('a[href]').forEach(a => absolutizeAttr(a, 'href'));
+      root.querySelectorAll('img[src]').forEach(img => absolutizeAttr(img, 'src'));
+      root.querySelectorAll('source[src], video[src], audio[src], track[src], script[src], link[href]').forEach(el => {
+        if (el.hasAttribute('href')) absolutizeAttr(el, 'href');
+        if (el.hasAttribute('src')) absolutizeAttr(el, 'src');
+      });
+      // srcset handling
+      root.querySelectorAll('[srcset]').forEach(el => {
+        const srcset = el.getAttribute('srcset');
+        if (!srcset) return;
+        const parts = srcset.split(',').map(s => s.trim()).filter(Boolean).map(item => {
+          const m = item.split(/\s+/);
+          const urlPart = m[0];
+          const descriptor = m.slice(1).join(' ');
+          try {
+            const abs = new URL(urlPart, baseUrl).href;
+            return descriptor ? `${abs} ${descriptor}` : abs;
+          } catch (_) {
+            return item; // leave as is
+          }
+        });
+        el.setAttribute('srcset', parts.join(', '));
+      });
+
+      // Return inner HTML without wrapper
+      return root.innerHTML;
+    } catch (_) {
+      return html;
+    }
+  }
+
+  /**
+   * For Broadcom TechDocs, extract the main topic content node
+   */
+  extractBroadcomMainNode(document) {
+    try {
+      // Main container holds the whole topic content
+      let section = document.querySelector('div.topic.section, .topic.section, [class*="topic"][class*="section"]');
+      if (!section) {
+        // Fallbacks
+        section = document.querySelector('#content, main, article');
+      }
+      if (!section) return null;
+      // Prefer a nested topic with concept class, else any .topic under section
+      const concept = section.querySelector('div.topic.topic.concept, .topic.concept, [class*="topic"][class*="concept"]');
+      if (concept) return concept;
+      const anyTopic = section.querySelector('div.topic.topic, .topic');
+      if (anyTopic) return anyTopic;
+      return section;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Cleanup Broadcom content: remove related links and cut after contact-us section
+   */
+  cleanBroadcomNode(root) {
+    if (!root) return root;
+    const removeAll = (selector) => {
+      root.querySelectorAll(selector).forEach(el => el.remove());
+    };
+    // Remove related links blocks
+    removeAll('.linklist.relatedlinks');
+    removeAll('.linkpool.linklist');
+    removeAll('.relatedlinks');
+    removeAll('[data-label="Related information"]');
+
+    // Remove "In this guide, see:" section (intro paragraph + following list)
+    try {
+      const candidates = Array.from(root.querySelectorAll('p, div, section, article'));
+      for (const el of candidates) {
+        const txt = (el.textContent || '').trim();
+        if (txt.startsWith('In this guide, see:')) {
+          // remove this node
+          const parent = el.parentElement;
+          const next = el.nextElementSibling;
+          el.remove();
+          // if next sibling is a list of links, remove it too
+          if (next && (/^UL$/i.test(next.tagName) || next.matches('.ul, .list, .linklist, .linkpool'))) {
+            next.remove();
+          }
+          // stop after first removal
+          break;
+        }
+      }
+    } catch (_) { /* ignore */ }
+
+    // Cut at contact-us section if present
+    const contact = root.querySelector('#contact-us-section, .contact-us-section');
+    if (contact) {
+      // remove contact and everything after within the same parent
+      const parent = contact.parentElement;
+      if (parent) {
+        let cur = contact;
+        while (cur) {
+          const next = cur.nextElementSibling;
+          cur.remove();
+          cur = next;
+        }
+      } else {
+        contact.remove();
+      }
+    }
+    return root;
+  }
+
+  /**
    * Convert content to specified format
    */
   convertContent(content, textContent, outputFormat) {
@@ -367,8 +506,21 @@ class ReadabilityService {
     const html = await this.fetchHtml(url);
 
     // Create DOM from HTML
-    const dom = this.createDOM(html, url);
-    const document = dom.window.document;
+    let dom = this.createDOM(html, url);
+    let document = dom.window.document;
+
+    // Broadcom TechDocs: extract main node BEFORE Readability mutates the DOM
+    let broadcomPreExtractHtml = null;
+    if (this.isBroadcomTechDocsUrl(url)) {
+      const preNode = this.extractBroadcomMainNode(document);
+      if (preNode) {
+        this.cleanBroadcomNode(preNode);
+        broadcomPreExtractHtml = preNode.outerHTML;
+        // Recreate DOM scoped to main node for cleaner Readability parse
+        dom = this.createDOM(broadcomPreExtractHtml, url);
+        document = dom.window.document;
+      }
+    }
 
     // Check if content is probably readable
     const readerable = isProbablyReaderable(document);
@@ -393,6 +545,30 @@ class ReadabilityService {
 
     // Extract site name
     result.siteName = this.extractSiteName(result, url);
+
+    // Broadcom TechDocs: override content using the main topic container and absolutize links
+    if (this.isBroadcomTechDocsUrl(url)) {
+      if (broadcomPreExtractHtml) {
+        result.content = broadcomPreExtractHtml;
+        // Derive title from h1
+        const tmp = this.createDOM(broadcomPreExtractHtml, url).window.document;
+        const h1 = tmp.querySelector('h1');
+        if (h1) result.title = h1.textContent.trim();
+        result.textContent = tmp.body ? tmp.body.textContent.trim() : result.textContent;
+      } else {
+        const mainNode = this.extractBroadcomMainNode(document);
+        if (mainNode) {
+          this.cleanBroadcomNode(mainNode);
+          result.content = mainNode.outerHTML;
+          result.textContent = mainNode.textContent ? mainNode.textContent.trim() : result.textContent;
+          const h1 = mainNode.querySelector('h1');
+          if (h1 && (!result.title || result.title.trim().length < 3)) {
+            result.title = h1.textContent.trim();
+          }
+        }
+      }
+      result.content = this.absolutizeLinks(result.content, url);
+    }
 
     // Convert content based on output format
     let { finalContent, contentType } = this.convertContent(
@@ -427,7 +603,6 @@ class ReadabilityService {
     };
 
 
-    console.log('Response content:', finalContent);
     return responseData;
   }
 }
